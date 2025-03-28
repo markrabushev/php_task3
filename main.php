@@ -20,12 +20,24 @@ $pattern = '/<img[^>]+src="([^"]+)"[^>]*>/i';
 $index = 0;
 $newHtmlFile = preg_replace_callback($pattern, function($matches) use ($inputFile, $outputDir, &$index) {
     $src = $matches[1];
-
-    #Если путь абсолютный, то заменяю его на newdomain.com/images/
+    #Если путь абсолютный, то заменяю домен на img.freepik.com и скачиваю изображение в новую директорию
     #Если путь относительный, то копирую файл в новую директорию,
     #заменяю его название и заменяю путь в src
     if (preg_match('/^https?:\/\//', $src)) {
-        $src = preg_replace('/^(https?:\/\/).*\//', '$1newdomain.com/images/', $src);
+        $newUrl = preg_replace('/^https?:\/\/[^\/]+/', 'http://img.freepik.com', $src);
+        
+        $imageData = file_get_contents($newUrl);
+        if ($imageData === false) {
+            echo "Не удалось скачать изображение: $newUrl\n";
+            return $matches[0]; 
+        }
+
+        $fileExtension = pathinfo($newUrl, PATHINFO_EXTENSION);
+        $newFileName = $index . '.' . $fileExtension;
+        $newFilePath = $outputDir . '/' . $newFileName;
+        file_put_contents($newFilePath, $imageData);
+        $src = $newFilePath;
+        $index++;
     } else {
         if (file_exists($src)) {
             $fileExtension = pathinfo($src, PATHINFO_EXTENSION);
